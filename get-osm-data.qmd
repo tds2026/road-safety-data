@@ -67,3 +67,7 @@ dim(osm_data_simple)
 osm_data_simple |> 
   mapview::mapview(zcol = "highway")
 ```
+
+Next step: read-up on osmactive package documentation to find out how to map cycleways
+
+
