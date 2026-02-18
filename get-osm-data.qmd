@@ -1,0 +1,37 @@
+---
+title: "Get OSM data"
+format: gfm
+---
+
+
+To get OSM data into R, we'll use the `osmextract` package and then the `osmactive` package to get active travel specific information.
+
+```{r}
+#| label: install-packages
+#| include: false
+# Install the pak package if you don't have it already
+if (!requireNamespace("pak", quietly = TRUE)) {
+  install.packages("pak")
+}
+pkgs <- c(
+  "tidyverse",
+  "osmextract",
+  "nptscot/osmactive"
+)
+pak::pak(pkgs)
+```
+
+```{r}
+#| label: load-packages
+#| result: hide
+#| message: false
+library(tidyverse)
+library(osmextract)
+library(osmactive)
+```
+
+```{r}
+#| label: case-study-area
+case_study_name <- "Cardiff, UK"
+
+```
