@@ -1,0 +1,120 @@
+```{r}
+
+#load and run packages
+
+remotes::install_cran("stats19")
+library(stats19)
+library(tidyverse)
+
+#download collision data
+# collisions_2019 <- get_stats19(year = 2019, type = "collision")
+collisions_2020 <- get_stats19(year = 2020, type = "collision")
+collisions_2021 <- get_stats19(year = 2021, type = "collision")
+collisions_2022 <- get_stats19(year = 2022, type = "collision")
+collisions_2023 <- get_stats19(year = 2023, type = "collision")
+collisions_2024 <- get_stats19(year = 2024, type = "collision")
+
+# casualty data for 2020 to 2024
+casualties_2020 <- get_stats19(year = 2020, type = "casualty")
+casualties_2021 <- get_stats19(year = 2021, type = "casualty")
+casualties_2022 <- get_stats19(year = 2022, type = "casualty")
+casualties_2023 <- get_stats19(year = 2023, type = "casualty")
+casualties_2024 <- get_stats19(year = 2024, type = "casualty")
+
+# filter for only cyclist casualties for each year
+cyclist_casualties_2020 <- casualties_2020 |>
+    filter(casualty_type == "Cyclist")
+cyclist_casualties_2021 <- casualties_2021 |>
+    filter(casualty_type == "Cyclist")
+cyclist_casualties_2022 <- casualties_2022 |>
+    filter(casualty_type == "Cyclist")
+cyclist_casualties_2023 <- casualties_2023 |>
+    filter(casualty_type == "Cyclist")
+cyclist_casualties_2024 <- casualties_2024 |>
+    filter(casualty_type == "Cyclist")
+
+#return variable of location of cyclist casualties_2020
+#cyclist_casualties_2020$lsoa_of_casualty
+
+#filter cyclist casualties in 2020 for those lsoas in Wales. do again for other cyclist_casualties_all_years
+cyclist_casualties_2020_wales <- cyclist_casualties_2020 |>
+    filter(str_starts(lsoa_of_casualty, "W"))
+cyclist_casualties_2021_wales <- cyclist_casualties_2021 |>
+    filter(str_starts(lsoa_of_casualty, "W"))
+cyclist_casualties_2022_wales <- cyclist_casualties_2022 |>
+    filter(str_starts(lsoa_of_casualty, "W"))
+cyclist_casualties_2023_wales <- cyclist_casualties_2023 |>
+    filter(str_starts(lsoa_of_casualty, "W"))
+cyclist_casualties_2024_wales <- cyclist_casualties_2024 |>
+    filter(str_starts(lsoa_of_casualty, "W"))
+
+#join 2020 collision data to cyclist casualties in Wales for 2020. then do for other years
+cyclist_casualties_2020_wales_collisions <- cyclist_casualties_2020_wales |>
+    left_join(collisions_2020, by = c("collision_index" = "collision_index"))
+cyclist_casualties_2021_wales_collisions <- cyclist_casualties_2021_wales |>
+    left_join(collisions_2021, by = c("collision_index" = "collision_index"))
+cyclist_casualties_2022_wales_collisions <- cyclist_casualties_2022_wales |>
+    left_join(collisions_2022, by = c("collision_index" = "collision_index"))
+cyclist_casualties_2023_wales_collisions <- cyclist_casualties_2023_wales |>
+    left_join(collisions_2023, by = c("collision_index" = "collision_index"))
+cyclist_casualties_2024_wales_collisions <- cyclist_casualties_2024_wales |>
+    left_join(collisions_2024, by = c("collision_index" = "collision_index"))
+
+#combined joined data for all years into one dataframe
+cyclist_casualties_wales_collisions_all_years <- bind_rows(cyclist_casualties_2020_wales_collisions, cyclist_casualties_2021_wales_collisions, cyclist_casualties_2022_wales_collisions, cyclist_casualties_2023_wales_collisions, cyclist_casualties_2024_wales_collisions)  
+
+#add location of cyclist collision to a map of Wales
+library(ggplot2)
+library(sf)
+
+
+#convert joined data to sf object using British National Grid (EPSG:27700) using easting/northing values 
+cyclist_sf <- cyclist_casualties_wales_collisions_all_years |> filter(!is.na(location_easting_osgr) & !is.na(location_northing_osgr)) |> st_as_sf(coords = c("location_easting_osgr", "location_northing_osgr"), crs = 27700)
+
+#use tmap to view cyclist casualties in Wales for 2020 with osm map as background. Make points different colours depending on severy of casualty (fatal is red, serious is orange, slight is yellow). Make background map grey scale.
+library(tmap)
+tmap_mode("view")
+tm_shape(cyclist_sf) +
+    tm_dots(col = "casualty_severity", size = 0.5, palette = c("red", "orange", "yellow")) +
+    tm_basemap("OpenStreetMap", alpha = 0.5)
+
+#create animated map of cyclist casualties in Wales from 2020 to 2024 using tmap animation. Make points different colours depending on severy of casualty (fatal is red, serious is orange, slight is yellow). Make background map grey scale animating by year of collision.
+tm_shape(cyclist_sf) +
+    tm_dots(col = "casualty_severity", size = 0.5, palette = c("red", "orange", "yellow")) +
+    tm_basemap("OpenStreetMap", alpha = 0.5) +
+    tm_facets(by = "collision_year.x", ncol = 1) +
+    tm_layout(panel.show = FALSE) +
+    tm_animate("collision_year.x", nframes = 5, fps = 1, loop = TRUE)
+
+# anim <- tm_shape(cyclist_sf) +
+#     tm_dots(col = "casualty_severity", size = 0.5, palette = c("red", "orange", "yellow")) +
+#     tm_basemap("OpenStreetMap", alpha = 0.5) +
+#     tm_facets(by = "collision_year.x", ncol = 1) +
+#     tm_layout(panel.show = FALSE) +
+#     tm_animate("collision_year.x", nframes = 5, fps = 1, loop = TRUE)
+
+#save animation as gif
+tmap_animation(anim, filename = "/Users/thomasauer/Documents/Study/University/UoL/1. Modules/9. Dissertation/R/diss_v1/cyclist_animation.gif", delay = 100)
+
+#create a bar chart of the number of cyclist casualties in Wales for each year from 2020 to 2024 using ggplot2. Make bars different colours depending on severity of casualty (fatal is red, serious is orange, slight is yellow).
+ggplot(cyclist_casualties_wales_collisions_all_years, aes(x = collision_year.x, fill = casualty_severity)) +
+  geom_bar() +
+  scale_fill_manual(values = c("red", "orange", "yellow")) +
+  labs(title = "Number of Cyclist Casualties in Wales by Year and Severity",
+       x = "Year",
+       y = "Number of Casualties")
+
+```
+
+
+```{r}
+
+#openroads
+#osmactive_data
+#osmrn_data
+
+#3km buffer around cardiff city centre
+
+
+
+```
