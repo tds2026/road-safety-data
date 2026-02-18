@@ -16,6 +16,7 @@ if (!requireNamespace("pak", quietly = TRUE)) {
 pkgs <- c(
   "tidyverse",
   "osmextract",
+  "zonebuilder",
   "nptscot/osmactive"
 )
 pak::pak(pkgs)
@@ -28,10 +29,41 @@ pak::pak(pkgs)
 library(tidyverse)
 library(osmextract)
 library(osmactive)
+library(sf)
 ```
 
 ```{r}
 #| label: case-study-area
 case_study_name <- "Cardiff, UK"
+case_study_zones <- zonebuilder::zb_zone(case_study_name)
+```
 
+```{r}
+#| label: map-case-study-area
+mapview::mapview(case_study_zones)
+```
+
+
+```{r}
+#| label: redefine-case-study-area
+# Based on observation of the previous zones, we'll select circle_id <= 2
+case_study_zones <- case_study_zones |>
+  dplyr::filter(circle_id <= 2)
+case_study_boundary <- case_study_zones |>
+  sf::st_union() 
+mapview::mapview(case_study_boundary)
+```
+
+```{r}
+#| label: get-osm-data
+# Simple osm data 
+# ?oe_get
+osm_data_simple <- oe_get(
+  place = case_study_boundary,
+  boundary = case_study_boundary,
+  boundary_type = "clipsrc"
+)
+dim(osm_data_simple)
+osm_data_simple |> 
+  mapview::mapview(zcol = "highway")
 ```
